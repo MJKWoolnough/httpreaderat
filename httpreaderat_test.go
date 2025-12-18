@@ -16,6 +16,8 @@ func TestHTTPReaderAt(t *testing.T) {
 	r, err := NewRequest(srv.URL + "/httpreaderat_test.go")
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
+	} else if r.Length() != 1035 {
+		t.Errorf("expecting length 1035, got %d", r.Length())
 	}
 
 	buf := make([]byte, 16)
