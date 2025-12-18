@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 )
 
 type Request struct {
-	url string
+	url    string
+	length int64
 }
 
 func NewRequest(url string) (*Request, error) {
@@ -20,7 +22,15 @@ func NewRequest(url string) (*Request, error) {
 		return nil, ErrNoRange
 	}
 
-	return &Request{url: url}, nil
+	contentLength := int64(-1)
+
+	if cl := resp.Header.Get("Content-Length"); cl != "" {
+		if contentLength, err = strconv.ParseInt(cl, 10, 64); err != nil {
+			return nil, fmt.Errorf("error parsing content-length: %w", err)
+		}
+	}
+
+	return &Request{url: url, length: contentLength}, nil
 }
 
 func (r *Request) ReadAt(p []byte, n int64) (int, error) {
@@ -39,6 +49,10 @@ func (r *Request) ReadAt(p []byte, n int64) (int, error) {
 	defer resp.Body.Close()
 
 	return resp.Body.Read(p)
+}
+
+func (r *Request) Length() int64 {
+	return r.length
 }
 
 var ErrNoRange = errors.New("no range header")
