@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"strconv"
 )
@@ -51,6 +52,8 @@ func (r *Request) getLength() error {
 func (r *Request) ReadAt(p []byte, n int64) (int, error) {
 	if r.length >= 0 && n > r.length {
 		return 0, io.EOF
+	} else if n < 0 {
+		return 0, fs.ErrInvalid
 	}
 
 	req, err := http.NewRequest(http.MethodGet, r.url, nil)
