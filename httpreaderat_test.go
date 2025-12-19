@@ -47,3 +47,19 @@ func TestHTTPReaderAt(t *testing.T) {
 		t.Errorf("expecting to read %d bytes, read %d", 0, n)
 	}
 }
+
+func TestSetLength(t *testing.T) {
+	r, err := NewRequest("")
+	if err == nil {
+		t.Errorf("expecting error, got %v", err)
+	} else if r != nil {
+		t.Errorf("expecting nil request, got %v", r)
+	}
+
+	r, err = NewRequest("", SetLength(10))
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	} else if r.Length() != 10 {
+		t.Errorf("expecting length %d, got %d", 10, r.Length())
+	}
+}
