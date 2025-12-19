@@ -13,13 +13,14 @@ import (
 var f embed.FS
 
 func TestHTTPReaderAt(t *testing.T) {
+	b, _ := f.ReadFile("httpreaderat_test.go")
 	srv := httptest.NewServer(http.FileServerFS(f))
 
 	r, err := NewRequest(srv.URL + "/httpreaderat_test.go")
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
-	} else if r.Length() != 1244 {
-		t.Errorf("expecting length 1244, got %d", r.Length())
+	} else if r.Length() != int64(len(b)) {
+		t.Errorf("expecting length %d, got %d", len(b), r.Length())
 	}
 
 	buf := make([]byte, 16)
