@@ -2,6 +2,8 @@ package httpreaderat
 
 import (
 	"embed"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,8 +18,8 @@ func TestHTTPReaderAt(t *testing.T) {
 	r, err := NewRequest(srv.URL + "/httpreaderat_test.go")
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
-	} else if r.Length() != 1035 {
-		t.Errorf("expecting length 1035, got %d", r.Length())
+	} else if r.Length() != 1244 {
+		t.Errorf("expecting length 1244, got %d", r.Length())
 	}
 
 	buf := make([]byte, 16)
@@ -36,5 +38,11 @@ func TestHTTPReaderAt(t *testing.T) {
 		t.Errorf("expecting to read %d bytes, read %d", 7, n)
 	} else if string(buf[:7]) != "package" {
 		t.Errorf("expecting to read string %q, read %q", "package", buf[:7])
+	}
+
+	if n, err := r.ReadAt(buf[:7], 1<<32); !errors.Is(err, io.EOF) {
+		t.Errorf("expecting error EOF, got %v", err)
+	} else if n != 0 {
+		t.Errorf("expecting to read %d bytes, read %d", 0, n)
 	}
 }
