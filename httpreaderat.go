@@ -13,25 +13,39 @@ type Request struct {
 	length int64
 }
 
-func NewRequest(url string) (*Request, error) {
-	resp, err := http.Head(url)
-	if err != nil {
-		return nil, err
+func NewRequest(url string, opts ...Option) (*Request, error) {
+	r := &Request{url: url, length: -1}
+
+	for _, opt := range opts {
+		opt(r)
 	}
 
-	if resp.Header.Get("Accept-Ranges") != "bytes" {
-		return nil, ErrNoRange
-	}
-
-	contentLength := int64(-1)
-
-	if cl := resp.Header.Get("Content-Length"); cl != "" {
-		if contentLength, err = strconv.ParseInt(cl, 10, 64); err != nil {
-			return nil, fmt.Errorf("error parsing content-length: %w", err)
+	if r.length == -1 {
+		if err := r.getLength(); err != nil {
+			return nil, err
 		}
 	}
 
-	return &Request{url: url, length: contentLength}, nil
+	return r, nil
+}
+
+func (r *Request) getLength() error {
+	resp, err := http.Head(r.url)
+	if err != nil {
+		return err
+	}
+
+	if resp.Header.Get("Accept-Ranges") != "bytes" {
+		return ErrNoRange
+	}
+
+	if cl := resp.Header.Get("Content-Length"); cl != "" {
+		if r.length, err = strconv.ParseInt(cl, 10, 64); err != nil {
+			return fmt.Errorf("error parsing content-length: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (r *Request) ReadAt(p []byte, n int64) (int, error) {
