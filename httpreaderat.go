@@ -3,6 +3,7 @@ package httpreaderat
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 )
@@ -34,6 +35,10 @@ func NewRequest(url string) (*Request, error) {
 }
 
 func (r *Request) ReadAt(p []byte, n int64) (int, error) {
+	if r.length >= 0 && n > r.length {
+		return 0, io.EOF
+	}
+
 	req, err := http.NewRequest(http.MethodGet, r.url, nil)
 	if err != nil {
 		return 0, err
