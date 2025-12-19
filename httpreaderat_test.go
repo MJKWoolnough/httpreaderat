@@ -4,6 +4,7 @@ import (
 	"embed"
 	"errors"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -24,6 +25,12 @@ func TestHTTPReaderAt(t *testing.T) {
 	}
 
 	buf := make([]byte, 16)
+
+	if n, err := r.ReadAt(buf[:12], -1); !errors.Is(err, fs.ErrInvalid) {
+		t.Errorf("expecting error ErrInvalid, got %v", err)
+	} else if n != 0 {
+		t.Errorf("expecting to read %d bytes, read %d", 0, n)
+	}
 
 	if n, err := r.ReadAt(buf[:12], 8); err != nil {
 		t.Errorf("unexpected error: %s", err)
