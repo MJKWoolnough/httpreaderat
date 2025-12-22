@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"iter"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -96,9 +97,36 @@ func (r *Request) Length() int64 {
 }
 
 func (r *Request) getBlocks(start, length int64) ([]string, error) {
+	blocks, requests := r.getExistingBlocks(start, length)
+	if len(requests) == 0 {
+		return blocks, nil
+	}
+
+	if err := r.setNewBlocks(blocks, requests, start); err != nil {
+		return nil, err
+	}
+
+	return blocks, nil
+}
+
+type requests [][2]int64
+
+func (r requests) Iter() iter.Seq[int64] {
+	return func(yield func(int64) bool) {
+		for _, request := range r {
+			for b := request[0]; b <= request[1]; b++ {
+				if !yield(b) {
+					return
+				}
+			}
+		}
+	}
+}
+
+func (r *Request) getExistingBlocks(start, length int64) ([]string, requests) {
 	var (
 		blocks   []string
-		requests [][2]int64
+		requests requests
 	)
 
 	startBlock := start / r.blockSize
@@ -120,15 +148,55 @@ func (r *Request) getBlocks(start, length int64) ([]string, error) {
 		}
 	}
 
-	if len(requests) == 0 {
-		return blocks, nil
+	return blocks, requests
+}
+
+func (r *Request) setNewBlocks(blocks []string, requests requests, start int64) error {
+	resp, err := r.requestBlocks(requests)
+	if err != nil {
+		return err
 	}
 
+	startBlock := start / r.blockSize
+	buf := make([]byte, r.blockSize)
+
+	rr, err := makeReader(resp)
+	if err != nil {
+		return err
+	}
+
+	for block := range requests.Iter() {
+		n, err := io.ReadFull(rr, buf[:cmp.Or(min(r.length, (block+1)*r.blockSize)%r.blockSize, r.blockSize)])
+		if err != nil {
+			return err
+		}
+
+		data := string(buf[:n])
+		blocks[block-startBlock] = data
+
+		r.cache.Set(block, data)
+	}
+
+	return resp.Body.Close()
+}
+
+func (r *Request) requestBlocks(requests requests) (*http.Response, error) {
 	req, err := http.NewRequest(http.MethodGet, r.url, nil)
 	if err != nil {
 		return nil, err
 	}
 
+	req.Header.Set("Range", r.makeByteRangeHeader(requests))
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (r *Request) makeByteRangeHeader(requests requests) string {
 	var byteRange strings.Builder
 
 	byteRange.WriteString("bytes=")
@@ -141,15 +209,10 @@ func (r *Request) getBlocks(start, length int64) ([]string, error) {
 		fmt.Fprintf(&byteRange, "%d-%d", request[0]*r.blockSize, min((request[1]+1)*r.blockSize, r.length)-1)
 	}
 
-	req.Header.Set("Range", byteRange.String())
+	return byteRange.String()
+}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	buf := make([]byte, r.blockSize)
-
+func makeReader(resp *http.Response) (io.Reader, error) {
 	var rr io.Reader = resp.Body
 
 	if mt, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type")); err != nil {
@@ -165,25 +228,7 @@ func (r *Request) getBlocks(start, length int64) ([]string, error) {
 		rr = &multipartReader{mr: mr, p: p}
 	}
 
-	for _, request := range requests {
-		for b := request[0]; b <= request[1]; b++ {
-			n, err := io.ReadFull(rr, buf[:cmp.Or(min(r.length, (b+1)*r.blockSize)%r.blockSize, r.blockSize)])
-			if err != nil {
-				return nil, err
-			}
-
-			data := string(buf[:n])
-			blocks[b-startBlock] = data
-
-			r.cache.Set(b, data)
-		}
-	}
-
-	if err = resp.Body.Close(); err != nil {
-		return nil, err
-	}
-
-	return blocks, nil
+	return rr, nil
 }
 
 type multipartReader struct {
