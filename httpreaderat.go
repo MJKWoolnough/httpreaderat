@@ -206,4 +206,8 @@ func (m *multipartReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
+func (r *Request) Clear() {
+	r.cache.Clear()
+}
+
 var ErrNoRange = errors.New("no range header")
