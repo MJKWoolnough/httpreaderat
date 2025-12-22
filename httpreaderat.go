@@ -1,3 +1,4 @@
+// Package httpreaderat allows opening a URL as a io.ReaderAt.
 package httpreaderat
 
 import (
@@ -21,6 +22,7 @@ type block struct {
 	prev, next *block
 }
 
+// Request represents an io.ReaderAt for an HTTP URL.
 type Request struct {
 	url       string
 	length    int64
@@ -28,6 +30,13 @@ type Request struct {
 	cache     *cache.LRU[int64, string]
 }
 
+// NewRequest creates a new Request object, for the given URL, that implements
+// io.ReaderAt.
+//
+// Options can be passed in to modify how the maximum length is determined, and
+// the characteristics of the block caching.
+//
+// By default, up to 256 4KB blocks will be cached.
 func NewRequest(url string, opts ...Option) (*Request, error) {
 	r := &Request{url: url, length: -1, blockSize: 1 << 12}
 
@@ -67,6 +76,7 @@ func (r *Request) getLength() error {
 	return nil
 }
 
+// ReadAt implements the io.ReaderAt interface.
 func (r *Request) ReadAt(p []byte, n int64) (int, error) {
 	if r.length >= 0 && n > r.length {
 		return 0, io.EOF
@@ -251,8 +261,10 @@ func (m *multipartReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
+// Clear clears the block cache.
 func (r *Request) Clear() {
 	r.cache.Clear()
 }
 
+// Errors.
 var ErrNoRange = errors.New("no range header")
