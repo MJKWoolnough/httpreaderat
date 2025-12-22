@@ -7,3 +7,9 @@ func SetLength(length int64) Option {
 		r.length = length
 	}
 }
+
+func BlockSize(size int64) Option {
+	return func(r *Request) {
+		r.blockSize = size
+	}
+}
