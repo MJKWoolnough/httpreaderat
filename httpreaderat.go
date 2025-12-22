@@ -28,7 +28,7 @@ type Request struct {
 }
 
 func NewRequest(url string, opts ...Option) (*Request, error) {
-	r := &Request{url: url, length: -1, blockSize: 1 << 12, cache: cache.NewLRU[int64, string](256)}
+	r := &Request{url: url, length: -1, blockSize: 1 << 12}
 
 	for _, opt := range opts {
 		opt(r)
@@ -38,6 +38,10 @@ func NewRequest(url string, opts ...Option) (*Request, error) {
 		if err := r.getLength(); err != nil {
 			return nil, err
 		}
+	}
+
+	if r.cache == nil {
+		r.cache = cache.NewLRU[int64, string](256)
 	}
 
 	return r, nil
