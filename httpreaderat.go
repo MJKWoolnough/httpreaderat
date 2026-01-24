@@ -22,6 +22,8 @@ type block struct {
 	prev, next *block
 }
 
+// Client is an interface representing the method required when performing HTTP
+// requests, usually implemented by *http.Client.
 type Client interface {
 	Do(req *http.Request) (*http.Response, error)
 }

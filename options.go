@@ -29,6 +29,8 @@ func CacheCount(count uint64) Option {
 	}
 }
 
+// HTTPClient allows the setting of a custom HTTP client, instead of
+// http.DefaultClient allowing the setting of custom HTTP options.
 func HTTPClient(client Client) Option {
 	return func(r *Request) {
 		r.client = client
