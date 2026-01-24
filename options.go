@@ -1,6 +1,8 @@
 package httpreaderat
 
-import "vimagination.zapto.org/cache"
+import (
+	"vimagination.zapto.org/cache"
+)
 
 // Option is an option that can be parsed to NewRequest.
 type Option func(*Request)
@@ -24,5 +26,11 @@ func BlockSize(size int64) Option {
 func CacheCount(count uint64) Option {
 	return func(r *Request) {
 		r.cache = cache.NewLRU[int64, string](count)
+	}
+}
+
+func HTTPClient(client Client) Option {
+	return func(r *Request) {
+		r.client = client
 	}
 }

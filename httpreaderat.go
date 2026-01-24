@@ -22,8 +22,13 @@ type block struct {
 	prev, next *block
 }
 
+type Client interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 // Request represents an io.ReaderAt for an HTTP URL.
 type Request struct {
+	client    Client
 	url       string
 	length    int64
 	blockSize int64
@@ -44,6 +49,10 @@ func NewRequest(url string, opts ...Option) (*Request, error) {
 		opt(r)
 	}
 
+	if r.client == nil {
+		r.client = http.DefaultClient
+	}
+
 	if r.length == -1 {
 		if err := r.getLength(); err != nil {
 			return nil, err
@@ -58,7 +67,12 @@ func NewRequest(url string, opts ...Option) (*Request, error) {
 }
 
 func (r *Request) getLength() error {
-	resp, err := http.Head(r.url)
+	req, err := http.NewRequest(http.MethodGet, r.url, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := r.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -198,7 +212,7 @@ func (r *Request) requestBlocks(requests requests) (*http.Response, error) {
 
 	req.Header.Set("Range", r.makeByteRangeHeader(requests))
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := r.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
