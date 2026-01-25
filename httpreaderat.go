@@ -260,8 +260,6 @@ type multipartReader struct {
 func (m *multipartReader) Read(p []byte) (int, error) {
 	n, err := m.p.Read(p)
 	if n == 0 && errors.Is(err, io.EOF) {
-		var err error
-
 		if m.p, err = m.mr.NextPart(); err != nil {
 			return n, err
 		}
