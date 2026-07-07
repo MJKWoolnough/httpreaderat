@@ -2,7 +2,6 @@
 
 [![CI](https://github.com/MJKWoolnough/httpreaderat/actions/workflows/go-checks.yml/badge.svg)](https://github.com/MJKWoolnough/httpreaderat/actions)
 [![Go Reference](https://pkg.go.dev/badge/vimagination.zapto.org/httpreaderat.svg)](https://pkg.go.dev/vimagination.zapto.org/httpreaderat)
-[![Go Report Card](https://goreportcard.com/badge/vimagination.zapto.org/httpreaderat)](https://goreportcard.com/report/vimagination.zapto.org/httpreaderat)
 
 --
     import "vimagination.zapto.org/httpreaderat"
