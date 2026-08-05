@@ -1,5 +1,5 @@
 // Package httpreaderat allows opening a URL as a io.ReaderAt.
-package httpreaderat
+package httpreaderat // import "vimagination.zapto.org/httpreaderat"
 
 import (
 	"cmp"
