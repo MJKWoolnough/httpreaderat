@@ -95,7 +95,9 @@ func (r *Request) ReadAt(p []byte, n int64) (int, error) {
 		return 0, fs.ErrInvalid
 	}
 
-	p = p[:min(int64(len(p)), r.length-n)]
+	if r.length >= 0 {
+		p = p[:min(int64(len(p)), r.length-n)]
+	}
 
 	blocks, err := r.getBlocks(n, int64(len(p)))
 	if err != nil {
